@@ -98,7 +98,7 @@ static int detect_vm_cpuid(void) {
                         : "0" (eax)
                 );
 
-                log_debug("virtualization found, CPUID=%s", sig.text);
+                log_debug("Virtualization found, CPUID=%s", sig.text);
 
                 for (j = 0; j < ELEMENTSOF(cpuid_vendor_table); j ++)
                         if (streq(sig.text, cpuid_vendor_table[j].cpuid))
@@ -125,7 +125,7 @@ static int detect_vm_device_tree(void) {
                 dir = opendir("/proc/device-tree");
                 if (!dir) {
                         if (errno == ENOENT) {
-                                log_debug("No virtualization found (/proc/device-tree does not exist)");
+                                log_debug("/proc/device-tree: %m", errno);
                                 return VIRTUALIZATION_NONE;
                         }
                         return -errno;
@@ -133,16 +133,16 @@ static int detect_vm_device_tree(void) {
 
                 FOREACH_DIRENT(dent, dir, return -errno)
                         if (strstr(dent->d_name, "fw-cfg")) {
-                                log_debug("virtualization QEMU found in %s", dent->d_name);
+                                log_debug("Virtualization QEMU: \"fw-cfg\" present in /proc/device-tree/%s", dent->d_name);
                                 return VIRTUALIZATION_QEMU;
                         }
 
-                log_debug("No virtualization found in /proc/device-tree");
+                log_debug("No virtualization found in /proc/device-tree/*");
                 return VIRTUALIZATION_NONE;
         } else if (r < 0)
                 return r;
 
-        log_debug("virtualization %s found in /proc/device-tree/hypervisor/compatible", hvtype);
+        log_debug("Virtualization %s found in /proc/device-tree/hypervisor/compatible", hvtype);
         if (streq(hvtype, "linux,kvm"))
                 return VIRTUALIZATION_KVM;
         else if (strstr(hvtype, "xen"))
@@ -150,7 +150,7 @@ static int detect_vm_device_tree(void) {
         else
                 return VIRTUALIZATION_VM_OTHER;
 #else
-        log_debug("No virtualization found in /proc/device-tree (not on this pllattform)");
+        log_debug("This platform does not support /proc/device-tree");
         return VIRTUALIZATION_NONE;
 #endif
 }
@@ -198,7 +198,7 @@ static int detect_vm_dmi(void) {
 
                 for (j = 0; j < ELEMENTSOF(dmi_vendor_table); j++)
                         if (startswith(s, dmi_vendor_table[j].vendor)) {
-                                log_debug("virtualization %s found in DMI (%s)", s, dmi_vendors[i]);
+                                log_debug("Virtualization %s found in DMI (%s)", s, dmi_vendors[i]);
                                 return dmi_vendor_table[j].id;
                         }
         }
@@ -216,7 +216,7 @@ static int detect_vm_xen(void) {
 
         r = read_one_line_file("/proc/xen/capabilities", &domcap);
         if (r == -ENOENT) {
-                log_debug("No virtualization found as /proc/xen/capabilities does not exist");
+                log_debug("Virtualization XEN not found, /proc/xen/capabilities does not exist");
                 return VIRTUALIZATION_NONE;
         }
 
@@ -226,11 +226,11 @@ static int detect_vm_xen(void) {
                         break;
 
         if (!cap) {
-                log_debug("virtualization XEN DomU found (/proc/xen/capabilites)");
+                log_debug("Virtualization XEN DomU found (/proc/xen/capabilites)");
                 return VIRTUALIZATION_XEN;
         }
 
-        log_debug("virtualization XEN Dom0 ignored (/proc/xen/capabilities)");
+        log_debug("Virtualization XEN Dom0 ignored (/proc/xen/capabilities)");
         return VIRTUALIZATION_NONE;
 
 }
@@ -245,7 +245,7 @@ static int detect_vm_hypervisor(void) {
         if (r < 0)
                 return r;
 
-        log_debug("virtualization %s found in /sys/hypervisor/type", hvtype);
+        log_debug("Virtualization %s found in /sys/hypervisor/type", hvtype);
 
         if (streq(hvtype, "xen"))
                 return VIRTUALIZATION_XEN;
@@ -283,13 +283,13 @@ static int detect_vm_zvm(void) {
         if (r < 0)
                 return r;
 
-        log_debug("virtualization %s found in /proc/sysinfo", t);
+        log_debug("Virtualization %s found in /proc/sysinfo", t);
         if (streq(t, "z/VM"))
                 return VIRTUALIZATION_ZVM;
         else
                 return VIRTUALIZATION_KVM;
 #else
-        log_debug("No virtualization found in /proc/sysinfo (not on this pllattform)");
+        log_debug("This platform does not support /proc/sysinfo");
         return VIRTUALIZATION_NONE;
 #endif
 }
@@ -358,7 +358,7 @@ int detect_vm(void) {
 
 finish:
         cached_found = r;
-        log_debug("detect_vm: virtualization=%s", virtualization_to_string(r));
+        log_debug("Found VM virtualization %s", virtualization_to_string(r));
         return r;
 }
 
@@ -446,7 +446,7 @@ int detect_container(void) {
         r = VIRTUALIZATION_CONTAINER_OTHER;
 
 finish:
-        log_debug("detect_container: virtualization=%s", virtualization_to_string(r));
+        log_debug("Found container virtualization %s", virtualization_to_string(r));
         cached_found = r;
         return r;
 }
@@ -458,7 +458,6 @@ int detect_virtualization(void) {
         if (r == 0)
                 r = detect_vm();
 
-        log_debug("detect_virtualization: virtualization=%s", virtualization_to_string(r));
         return r;
 }
 
