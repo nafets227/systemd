@@ -125,7 +125,7 @@ static int detect_vm_device_tree(void) {
                 dir = opendir("/proc/device-tree");
                 if (!dir) {
                         if (errno == ENOENT) {
-                                log_debug("/proc/device-tree: %m", errno);
+                                log_debug("/proc/device-tree: %m");
                                 return VIRTUALIZATION_NONE;
                         }
                         return -errno;
